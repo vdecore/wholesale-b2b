@@ -1,0 +1,6 @@
+# Copy to `.dev.vars` (never commit). Required for admin auth in local Wrangler dev.
+SESSION_SECRET=replace-with-at-least-32-random-characters-local-only
+
+# Optional overrides
+# ALLOWED_ORIGIN=http://localhost:5173
+# COOKIE_SECURE=false

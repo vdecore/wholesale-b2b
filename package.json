@@ -1,0 +1,28 @@
+{
+  "name": "wholesale-b2b",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "dev:api": "wrangler dev --port 8787",
+    "test": "node scripts/test-all.mjs",
+    "db:migrate:local": "wrangler d1 migrations apply wholesale-b2b-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply wholesale-b2b-db --remote"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.81.0",
+    "vite": "^8.3.0",
+    "wrangler": "^4.149.0"
+  }
+}

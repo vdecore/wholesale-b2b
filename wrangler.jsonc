@@ -1,0 +1,19 @@
+
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wholesale-b2b",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-11",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "wholesale-b2b-db",
+      "database_id": "050ac377-adcb-4ecf-9236-209ed59f32d8",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "ALLOWED_ORIGIN": "http://localhost:5173",
+    "COOKIE_SECURE": "false"
+  }
+}
