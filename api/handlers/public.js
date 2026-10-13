@@ -83,7 +83,11 @@ export async function listProducts(request, env) {
     .bind(...binds, limit, offset)
     .all();
 
-  const products = (results || []).map((row) => mapPublicProduct(row));
+  const products = [];
+  for (const row of results || []) {
+    const images = await loadProductImages(env.DB, row.id);
+    products.push(mapPublicProduct(row, [], images));
+  }
   return json(
     {
       success: true,

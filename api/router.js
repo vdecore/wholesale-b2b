@@ -6,6 +6,7 @@ import * as adminProducts from "./handlers/admin/products.js";
 import * as adminCategories from "./handlers/admin/categories.js";
 import * as adminOrders from "./handlers/admin/orders.js";
 import * as adminInquiries from "./handlers/admin/inquiries.js";
+import * as adminImages from "./handlers/admin/images.js";
 import { requireAdmin } from "./lib/session.js";
 import { ValidationError } from "./lib/validate.js";
 import { HttpError } from "./lib/http.js";
@@ -120,6 +121,30 @@ export async function handleRequest(request, env) {
     const adminInquiryId = path.match(/^\/api\/admin\/inquiries\/(\d+)\/status$/);
     if (adminInquiryId && request.method === "PATCH") {
       return await adminInquiries.patchInquiryStatus(Number(adminInquiryId[1]), request, env);
+    }
+
+    // Serve R2 images publicly
+    const imageServe = path.match(/^\/api\/images\/(.+)$/);
+    if (imageServe && request.method === "GET") {
+      return await adminImages.serveImage(decodeURIComponent(imageServe[1]), request, env);
+    }
+
+    // Image upload
+    const imageUpload = path.match(/^\/api\/admin\/products\/(\d+)\/images$/);
+    if (imageUpload && request.method === "POST") {
+      return await adminImages.uploadProductImage(Number(imageUpload[1]), request, env);
+    }
+
+    // Image reorder
+    const imageReorder = path.match(/^\/api\/admin\/products\/(\d+)\/images\/reorder$/);
+    if (imageReorder && request.method === "PUT") {
+      return await adminImages.reorderProductImages(Number(imageReorder[1]), request, env);
+    }
+
+    // Image delete
+    const imageDelete = path.match(/^\/api\/admin\/products\/(\d+)\/images\/(\d+)$/);
+    if (imageDelete && request.method === "DELETE") {
+      return await adminImages.deleteProductImage(Number(imageDelete[1]), Number(imageDelete[2]), request, env);
     }
 
     return json({ success: false, error: "Not found" }, { status: 404 }, env, request);

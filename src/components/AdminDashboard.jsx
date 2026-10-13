@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   adminLogin,
   adminLogout,
@@ -18,6 +18,9 @@ import {
   fetchAdminInquiries,
   updateAdminInquiryStatus,
   getInquiriesExportUrl,
+  uploadProductImage,
+  deleteProductImage,
+  reorderProductImages,
 } from "../api.js";
 
 export default function AdminDashboard({ onNavigateToStore }) {
@@ -1110,26 +1113,191 @@ function ProductFormModal({ product, categories, csrfToken, onClose, onSaved }) 
   const [moq, setMoq] = useState(product.moq ?? 10);
   const [stock, setStock] = useState(product.stock ?? 100);
   const [unit, setUnit] = useState(product.unit || "piece");
-  const [imageUrl, setImageUrl] = useState(product.imageUrl || "");
   const [status, setStatus] = useState(product.status || "active");
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Additional images (up to 3 extra URLs stored in product_images table)
-  const [extraImages, setExtraImages] = useState(() => {
-    const existing = (product.images || []).map((img) => img.url || "");
-    // Pre-fill up to 3 fields
-    return [
-      existing[0] || "",
-      existing[1] || "",
-      existing[2] || "",
-    ];
+  // Images consolidated from all sources
+  const [managedImages, setManagedImages] = useState(() => {
+    const imgs = [];
+    // Include primary imageUrl if present
+    if (product.imageUrl) {
+      imgs.push({ id: null, url: product.imageUrl, altText: null, source: 'primary', sortOrder: 0 });
+    }
+    // Include existing product_images
+    for (const img of (product.images || [])) {
+      // Skip if already added as primary
+      if (product.imageUrl && img.url === product.imageUrl) continue;
+      imgs.push({ id: img.id, url: img.url, altText: img.altText, source: img.storageType || 'url', sortOrder: img.sortOrder });
+    }
+    return imgs;
   });
 
-  const setExtraImage = (i, val) => {
-    setExtraImages((prev) => {
+  // Upload states
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
+  const [urlInput, setUrlInput] = useState('');
+  const [urlError, setUrlError] = useState('');
+  const [urlPreview, setUrlPreview] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleFileUpload = async (files) => {
+    if (!files?.length) return;
+    const remaining = 4 - managedImages.length;
+    if (remaining <= 0) {
+      setErrorMsg('Maximum 4 images allowed per product.');
+      return;
+    }
+    
+    const filesToUpload = Array.from(files).slice(0, remaining);
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    
+    for (const file of filesToUpload) {
+      if (!allowedTypes.includes(file.type)) {
+        setErrorMsg(`File "${file.name}" is not a supported image type. Use JPEG, PNG, WebP, or GIF.`);
+        return;
+      }
+      if (file.size > maxSize) {
+        setErrorMsg(`File "${file.name}" exceeds 5MB size limit.`);
+        return;
+      }
+    }
+    
+    // Need a saved product ID to upload
+    if (isNew) {
+      setErrorMsg('Please save the product first before uploading images. You can add image URLs now and upload files after saving.');
+      return;
+    }
+    
+    setUploading(true);
+    setUploadProgress('');
+    setErrorMsg('');
+    
+    try {
+      for (let i = 0; i < filesToUpload.length; i++) {
+        setUploadProgress(`Uploading ${i + 1} of ${filesToUpload.length}...`);
+        const result = await uploadProductImage(product.id, filesToUpload[i], csrfToken);
+        if (result.success && result.image) {
+          setManagedImages(prev => [...prev, {
+            id: result.image.id,
+            url: result.image.url,
+            altText: result.image.altText,
+            source: 'r2',
+            sortOrder: result.image.sortOrder
+          }]);
+        }
+      }
+      setUploadProgress(`${filesToUpload.length} image(s) uploaded successfully!`);
+      setTimeout(() => setUploadProgress(''), 3000);
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleAddUrl = () => {
+    const trimmed = urlInput.trim();
+    if (!trimmed) return;
+    
+    if (managedImages.length >= 4) {
+      setUrlError('Maximum 4 images allowed.');
+      return;
+    }
+    
+    try {
+      const url = new URL(trimmed);
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        setUrlError('Only http and https URLs are supported.');
+        return;
+      }
+    } catch {
+      setUrlError('Please enter a valid URL.');
+      return;
+    }
+    
+    // Check for duplicates
+    if (managedImages.some(img => img.url === trimmed)) {
+      setUrlError('This URL is already added.');
+      return;
+    }
+    
+    setManagedImages(prev => [...prev, {
+      id: null,
+      url: trimmed,
+      altText: null,
+      source: 'url',
+      sortOrder: prev.length
+    }]);
+    setUrlInput('');
+    setUrlError('');
+    setUrlPreview(null);
+  };
+
+  const handleUrlPreview = (value) => {
+    setUrlInput(value);
+    setUrlError('');
+    const trimmed = value.trim();
+    if (!trimmed) { setUrlPreview(null); return; }
+    try {
+      const url = new URL(trimmed);
+      if (['http:', 'https:'].includes(url.protocol)) {
+        setUrlPreview(trimmed);
+      } else {
+        setUrlPreview(null);
+      }
+    } catch {
+      setUrlPreview(null);
+    }
+  };
+
+  const handleRemoveImage = async (index) => {
+    const img = managedImages[index];
+    // If it's an R2 image with an ID, delete from server
+    if (img.id && img.source === 'r2' && !isNew) {
+      try {
+        await deleteProductImage(product.id, img.id, csrfToken);
+      } catch (err) {
+        setErrorMsg(err.message || 'Failed to delete image from server');
+        return;
+      }
+    }
+    setManagedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDragStart = (e, index) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = (e, dropIndex) => {
+    e.preventDefault();
+    const dragIndex = Number(e.dataTransfer.getData('text/plain'));
+    if (dragIndex === dropIndex) { setDragOverIndex(null); return; }
+    
+    setManagedImages(prev => {
       const next = [...prev];
-      next[i] = val;
+      const [dragged] = next.splice(dragIndex, 1);
+      next.splice(dropIndex, 0, dragged);
+      return next;
+    });
+    setDragOverIndex(null);
+  };
+
+  const handleMoveImage = (fromIndex, toIndex) => {
+    if (toIndex < 0 || toIndex >= managedImages.length) return;
+    setManagedImages(prev => {
+      const next = [...prev];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
       return next;
     });
   };
@@ -1150,14 +1318,9 @@ function ProductFormModal({ product, categories, csrfToken, onClose, onSaved }) 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setErrorMsg("");
-
+    setErrorMsg('');
+    
     try {
-      // Build the additional images array (non-empty extra URLs)
-      const additionalImages = extraImages
-        .filter((url) => url.trim())
-        .map((url) => ({ url: url.trim() }));
-
       const payload = {
         name: name.trim(),
         sku: sku.trim().toUpperCase(),
@@ -1167,20 +1330,35 @@ function ProductFormModal({ product, categories, csrfToken, onClose, onSaved }) 
         price: Number(price),
         moq: Number(moq),
         stock: Number(stock),
-        unit: unit.trim() || "piece",
-        imageUrl: imageUrl.trim() || null,
+        unit: unit.trim() || 'piece',
+        imageUrl: managedImages[0]?.url || null,
         status,
-        images: additionalImages,
+        images: managedImages.map((img, idx) => ({
+          id: img.id || undefined,
+          url: img.url,
+          altText: img.altText || null,
+        })),
       };
-
+      
       if (isNew) {
-        await createAdminProduct(payload, csrfToken);
+        const result = await createAdminProduct(payload, csrfToken);
+        onSaved(result);
       } else {
         await updateAdminProduct(product.id, payload, csrfToken);
+        
+        // If order changed and we have R2 images with IDs, send reorder
+        const idsToReorder = managedImages.filter(img => img.id).map(img => img.id);
+        if (idsToReorder.length > 0) {
+          try {
+            await reorderProductImages(product.id, idsToReorder, csrfToken);
+          } catch {
+            // Non-critical — order was saved in the images array already
+          }
+        }
+        onSaved();
       }
-      onSaved();
     } catch (err) {
-      setErrorMsg(err.message || "Failed to save product");
+      setErrorMsg(err.message || 'Failed to save product');
     } finally {
       setSaving(false);
     }
@@ -1196,7 +1374,7 @@ function ProductFormModal({ product, categories, csrfToken, onClose, onSaved }) 
       <div className="admin-form-modal" role="dialog" aria-modal="true">
         <div className="modal-heading">
           <h2>{isNew ? "Add New Wholesale Product" : `Edit Product: ${product.sku}`}</h2>
-          <button type="button" className="close-button" onClick={onClose}>
+          <button type="button" className="close-button" onClick={onClose} aria-label="Close modal">
             ×
           </button>
         </div>
@@ -1312,34 +1490,117 @@ function ProductFormModal({ product, categories, csrfToken, onClose, onSaved }) 
             </div>
           </div>
 
-          {/* Product Images Section */}
-          <div className="form-group">
-            <label htmlFor="pImg">Primary Product Image URL</label>
-            <input
-              id="pImg"
-              placeholder="https://... (shown first, displayed on product card)"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-            />
-          </div>
-
-          <div className="admin-extra-images-section">
-            <span className="admin-extra-images-label">
-              Additional Images (carousel)
-              <small style={{ color: "var(--muted)", fontWeight: 400, marginLeft: 8 }}>
-                Up to 3 extra images — shown in carousel on product cards
+          {/* Image Management Section */}
+          <div className="admin-images-section">
+            <label className="admin-images-label">
+              Product Images
+              <small style={{ color: 'var(--muted)', fontWeight: 400, marginLeft: 8 }}>
+                Up to 4 images — first image is the primary display image
               </small>
-            </span>
-            {[0, 1, 2].map((i) => (
-              <input
-                key={i}
-                type="url"
-                placeholder={`Additional image ${i + 1} URL (https://...)`}
-                value={extraImages[i]}
-                onChange={(e) => setExtraImage(i, e.target.value)}
-                style={{ marginTop: 6 }}
-              />
-            ))}
+            </label>
+            
+            {/* Current images grid */}
+            {managedImages.length > 0 && (
+              <div className="admin-images-grid">
+                {managedImages.map((img, idx) => (
+                  <div
+                    key={img.id || img.url}
+                    className={`admin-image-card${idx === 0 ? ' primary' : ''}${dragOverIndex === idx ? ' drag-over' : ''}`}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, idx)}
+                    onDragOver={(e) => handleDragOver(e, idx)}
+                    onDragLeave={() => setDragOverIndex(null)}
+                    onDrop={(e) => handleDrop(e, idx)}
+                  >
+                    <div className="admin-image-preview">
+                      <img
+                        src={img.url}
+                        alt={img.altText || `Image ${idx + 1}`}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }}
+                      />
+                      <div className="admin-image-fallback" style={{ display: 'none' }}>
+                        <span>⚠️ Failed to load</span>
+                      </div>
+                    </div>
+                    <div className="admin-image-controls">
+                      <span className="admin-image-badge">
+                        {idx === 0 ? '★ Primary' : `#${idx + 1}`}
+                      </span>
+                      <span className="admin-image-source">
+                        {img.source === 'r2' ? '📁 Uploaded' : '🔗 URL'}
+                      </span>
+                      <div className="admin-image-actions">
+                        <button type="button" title="Move up" aria-label="Move image up" disabled={idx === 0} onClick={() => handleMoveImage(idx, idx - 1)}>↑</button>
+                        <button type="button" title="Move down" aria-label="Move image down" disabled={idx === managedImages.length - 1} onClick={() => handleMoveImage(idx, idx + 1)}>↓</button>
+                        <button type="button" title="Remove image" aria-label="Remove image" className="remove-img-btn" onClick={() => handleRemoveImage(idx)}>✕</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Add images area - only show if under limit */}
+            {managedImages.length < 4 && (
+              <div className="admin-add-images">
+                {/* Method A: File Upload */}
+                <div className="admin-upload-zone">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={(e) => { handleFileUpload(e.target.files); e.target.value = ''; }}
+                    disabled={uploading || isNew}
+                  />
+                  <button
+                    type="button"
+                    className="admin-upload-btn"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading || isNew}
+                  >
+                    {uploading ? uploadProgress || 'Uploading...' : '📁 Upload Image Files'}
+                  </button>
+                  {isNew && (
+                    <small className="upload-note">Save the product first to enable file uploads</small>
+                  )}
+                  <small className="upload-hint">JPEG, PNG, WebP, GIF — max 5MB each</small>
+                </div>
+                
+                {/* Method B: URL Input */}
+                <div className="admin-url-input-zone">
+                  <div className="admin-url-row">
+                    <input
+                      type="url"
+                      placeholder="Paste image URL (https://...)" 
+                      value={urlInput}
+                      onChange={(e) => handleUrlPreview(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddUrl(); } }}
+                    />
+                    <button type="button" className="secondary-btn" onClick={handleAddUrl} disabled={!urlInput.trim()}>
+                      + Add URL
+                    </button>
+                  </div>
+                  {urlError && <small className="url-error">{urlError}</small>}
+                  {urlPreview && (
+                    <div className="url-preview-box">
+                      <img
+                        src={urlPreview}
+                        alt="URL preview"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        onLoad={(e) => { e.currentTarget.style.display = 'block'; }}
+                        style={{ display: 'none' }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {managedImages.length >= 4 && (
+              <p className="admin-images-limit-note">Maximum of 4 images reached. Remove an image to add more.</p>
+            )}
           </div>
 
           <div className="form-group">
@@ -1374,6 +1635,7 @@ function ProductFormModal({ product, categories, csrfToken, onClose, onSaved }) 
     </div>
   );
 }
+
 
 
 function CategoryFormModal({ category, csrfToken, onClose, onSaved }) {

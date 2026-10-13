@@ -49,21 +49,64 @@ async function replaceTiers(db, productId, tiers) {
   }
 }
 
-async function replaceImages(db, productId, images) {
+async function replaceImages(db, env, productId, images) {
+  const existingImages = await loadProductImages(db, productId);
+  const existingMap = new Map(existingImages.map((img) => [img.id, img]));
+
+  const newImageIds = new Set(
+    (images || [])
+      .map((img) => img.id)
+      .filter((id) => id != null)
+  );
+
+  const orphanedR2Images = existingImages.filter(
+    (oldImg) => oldImg.storageType === "r2" && oldImg.r2Key && !newImageIds.has(oldImg.id)
+  );
+
+  if (env.IMAGES) {
+    for (const orphan of orphanedR2Images) {
+      try {
+        await env.IMAGES.delete(orphan.r2Key);
+      } catch (err) {
+        console.error(`Failed to delete R2 object ${orphan.r2Key}:`, err);
+      }
+    }
+  }
+
   await db.prepare(`DELETE FROM product_images WHERE product_id = ?`).bind(productId).run();
   if (!images?.length) return;
+
   let sort = 0;
   for (const img of images) {
     const url = requireString(img.url, "image url", { max: 2000 });
     if (!/^https?:\/\//i.test(url) && !url.startsWith("/")) {
       throw new ValidationError("Image URL must be http(s) or site-relative");
     }
+
+    let storageType = "url";
+    let r2Key = null;
+
+    if (img.id && existingMap.has(img.id)) {
+      const existing = existingMap.get(img.id);
+      if (existing.storageType === "r2") {
+        storageType = "r2";
+        r2Key = existing.r2Key;
+      }
+    }
+
     await db
       .prepare(
-        `INSERT INTO product_images (product_id, url, alt_text, sort_order)
-         VALUES (?, ?, ?, ?)`
+        `INSERT INTO product_images (product_id, url, alt_text, sort_order, storage_type, r2_key)
+         VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .bind(productId, url, optionalString(img.altText, "altText", { max: 200 }), sort++)
+      .bind(
+        productId,
+        url,
+        optionalString(img.altText, "altText", { max: 200 }),
+        sort++,
+        storageType,
+        r2Key
+      )
       .run();
   }
 }
@@ -210,7 +253,7 @@ export async function createProduct(request, env) {
 
   const productId = result.meta.last_row_id;
   await replaceTiers(env.DB, productId, body.pricingTiers);
-  await replaceImages(env.DB, productId, body.images);
+  await replaceImages(env.DB, env, productId, body.images);
   await audit(env.DB, session.admin_user_id, "product.create", "product", productId, { sku: data.sku });
 
   return json({ success: true, productId }, { status: 201 }, env, request);
@@ -270,7 +313,7 @@ export async function updateProduct(id, request, env) {
   }
 
   if (body.pricingTiers != null) await replaceTiers(env.DB, id, body.pricingTiers);
-  if (body.images != null) await replaceImages(env.DB, id, body.images);
+  if (body.images != null) await replaceImages(env.DB, env, id, body.images);
 
   await audit(env.DB, session.admin_user_id, "product.update", "product", id, null);
   return json({ success: true }, {}, env, request);
@@ -296,6 +339,20 @@ export async function deleteProduct(id, request, env) {
       env,
       request
     );
+  }
+
+  // Delete associated R2 images
+  const existingImages = await loadProductImages(env.DB, id);
+  if (env.IMAGES) {
+    for (const img of existingImages) {
+      if (img.storageType === "r2" && img.r2Key) {
+        try {
+          await env.IMAGES.delete(img.r2Key);
+        } catch (e) {
+          console.error(`Failed to delete R2 image ${img.r2Key}:`, e);
+        }
+      }
+    }
   }
 
   await env.DB.prepare(`DELETE FROM product_pricing_tiers WHERE product_id = ?`).bind(id).run();

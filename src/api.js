@@ -215,3 +215,28 @@ export async function updateAdminInquiryStatus(id, updateData, csrfToken) {
 export function getInquiriesExportUrl() {
   return `${API_BASE}/admin/inquiries/export.csv`;
 }
+
+export async function uploadProductImage(productId, file, csrfToken) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return request(`/admin/products/${productId}/images`, {
+    method: "POST",
+    headers: { "X-CSRF-Token": csrfToken },
+    body: formData,
+  });
+}
+
+export async function deleteProductImage(productId, imageId, csrfToken) {
+  return request(`/admin/products/${productId}/images/${imageId}`, {
+    method: "DELETE",
+    headers: { "X-CSRF-Token": csrfToken },
+  });
+}
+
+export async function reorderProductImages(productId, imageIds, csrfToken) {
+  return request(`/admin/products/${productId}/images/reorder`, {
+    method: "PUT",
+    headers: { "X-CSRF-Token": csrfToken },
+    body: { imageIds },
+  });
+}

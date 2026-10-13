@@ -30,10 +30,7 @@ export default function Header({
               e.currentTarget.style.display = "none";
             }}
           />
-          <div className="brand-fallback-text">
-            <strong>VDECORE</strong>
-            <small>WHOLESALE B2B</small>
-          </div>
+          
         </button>
 
         <div className="header-search">

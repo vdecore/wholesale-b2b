@@ -11,7 +11,7 @@ export function applyCors(headers, env, request, includeCredentials = true) {
   const origin = getAllowedOrigin(env, request);
   headers.set("Access-Control-Allow-Origin", origin);
   headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-  headers.set("Access-Control-Allow-Headers", "Content-Type, X-CSRF-Token");
+  headers.set("Access-Control-Allow-Headers", "Content-Type, X-CSRF-Token, multipart/form-data");
   if (includeCredentials) {
     headers.set("Access-Control-Allow-Credentials", "true");
   }

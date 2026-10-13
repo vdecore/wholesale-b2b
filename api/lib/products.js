@@ -64,7 +64,7 @@ export async function loadProductTiers(db, productId) {
 export async function loadProductImages(db, productId) {
   const { results } = await db
     .prepare(
-      `SELECT id, url, alt_text, sort_order
+      `SELECT id, url, alt_text, sort_order, storage_type, r2_key
        FROM product_images
        WHERE product_id = ?
        ORDER BY sort_order ASC, id ASC`
@@ -76,6 +76,8 @@ export async function loadProductImages(db, productId) {
     url: r.url,
     altText: r.alt_text,
     sortOrder: r.sort_order,
+    storageType: r.storage_type || 'url',
+    r2Key: r.r2_key || null,
   }));
 }
 

@@ -19,6 +19,12 @@
       "migrations_dir": "migrations"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      "bucket_name": "wholesale-b2b-images"
+    }
+  ],
   "vars": {
     "ALLOWED_ORIGIN": "https://wholesale-b2b.khushvikja.workers.dev",
     "COOKIE_SECURE": "true"
