@@ -125,7 +125,7 @@ export async function handleRequest(request, env) {
 
     // Serve R2 images publicly
     const imageServe = path.match(/^\/api\/images\/(.+)$/);
-    if (imageServe && request.method === "GET") {
+    if (imageServe && (request.method === "GET" || request.method === "HEAD")) {
       return await adminImages.serveImage(decodeURIComponent(imageServe[1]), request, env);
     }
 

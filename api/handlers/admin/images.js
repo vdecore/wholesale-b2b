@@ -1,4 +1,4 @@
-import { json, readJson, applyCors, HttpError } from "../../lib/http.js";
+import { json, readJson, applyCors } from "../../lib/http.js";
 import { requireAdmin, assertCsrf } from "../../lib/session.js";
 import { ValidationError } from "../../lib/validate.js";
 
@@ -135,7 +135,9 @@ export async function uploadProductImage(productId, request, env) {
     .bind(productId)
     .first();
   const nextSort = maxSortRow?.max_sort != null ? maxSortRow.max_sort + 1 : 0;
-  const publicUrl = `/api/images/${r2Key}`;
+  const publicUrl = env.R2_PUBLIC_URL
+    ? `${env.R2_PUBLIC_URL.replace(/\/+$/, "")}/${r2Key}`
+    : `/api/images/${r2Key}`;
 
   // Insert database record
   const insertResult = await env.DB.prepare(
@@ -147,6 +149,15 @@ export async function uploadProductImage(productId, request, env) {
 
   const imageId = insertResult.meta.last_row_id;
 
+  // Set as primary product image if not already set
+  await env.DB.prepare(
+    `UPDATE products
+     SET image_url = ?
+     WHERE id = ? AND (image_url IS NULL OR trim(image_url) = '')`
+  )
+    .bind(publicUrl, productId)
+    .run();
+
   return json(
     {
       success: true,
@@ -156,6 +167,7 @@ export async function uploadProductImage(productId, request, env) {
         altText: null,
         sortOrder: nextSort,
         storageType: "r2",
+        r2Key,
       },
     },
     { status: 201 },
@@ -169,7 +181,7 @@ export async function deleteProductImage(productId, imageId, request, env) {
   assertCsrf(request, session);
 
   const image = await env.DB.prepare(
-    `SELECT id, product_id, storage_type, r2_key
+    `SELECT id, product_id, storage_type, r2_key, url
      FROM product_images
      WHERE id = ? AND product_id = ?`
   )
@@ -190,6 +202,21 @@ export async function deleteProductImage(productId, imageId, request, env) {
 
   await env.DB.prepare(`DELETE FROM product_images WHERE id = ?`).bind(imageId).run();
 
+  // If this deleted image was the primary product image, update to the next image or null
+  const remainingImage = await env.DB.prepare(
+    `SELECT url FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, id ASC LIMIT 1`
+  )
+    .bind(productId)
+    .first();
+
+  await env.DB.prepare(
+    `UPDATE products
+     SET image_url = ?
+     WHERE id = ? AND image_url = ?`
+  )
+    .bind(remainingImage ? remainingImage.url : null, productId, image.url)
+    .run();
+
   return json({ success: true }, {}, env, request);
 }
 
@@ -204,15 +231,15 @@ export async function reorderProductImages(productId, request, env) {
 
   const { imageIds } = body;
   const { results } = await env.DB.prepare(
-    `SELECT id FROM product_images WHERE product_id = ?`
+    `SELECT id, url FROM product_images WHERE product_id = ?`
   )
     .bind(productId)
     .all();
 
-  const existingIds = new Set((results || []).map((r) => r.id));
+  const existingMap = new Map((results || []).map((r) => [r.id, r.url]));
 
   for (const id of imageIds) {
-    if (!existingIds.has(id)) {
+    if (!existingMap.has(id)) {
       throw new ValidationError(`Image ID ${id} does not belong to product ${productId}`);
     }
   }
@@ -222,6 +249,15 @@ export async function reorderProductImages(productId, request, env) {
       `UPDATE product_images SET sort_order = ? WHERE id = ? AND product_id = ?`
     )
       .bind(sort, imageIds[sort], productId)
+      .run();
+  }
+
+  // Update primary image_url to match first reordered image
+  if (imageIds.length > 0 && existingMap.has(imageIds[0])) {
+    await env.DB.prepare(
+      `UPDATE products SET image_url = ? WHERE id = ?`
+    )
+      .bind(existingMap.get(imageIds[0]), productId)
       .run();
   }
 
@@ -237,21 +273,32 @@ export async function serveImage(key, request, env) {
     return json({ success: false, error: "Image storage bucket not configured" }, { status: 500 }, env, request);
   }
 
-  const object = await env.IMAGES.get(key);
+  // Sanitize key against path traversal
+  const cleanKey = key.replace(/^[/\\]+/, "").replace(/\.\./g, "");
+  const object = await env.IMAGES.get(cleanKey);
   if (!object) {
     return json({ success: false, error: "Image not found" }, { status: 404 }, env, request);
   }
 
+  const ifNoneMatch = request.headers.get("if-none-match");
+  const etag = object.httpEtag;
+
   const headers = new Headers();
   object.writeHttpMetadata(headers);
-  headers.set("etag", object.httpEtag);
+  if (etag) {
+    headers.set("etag", etag);
+    if (ifNoneMatch && (ifNoneMatch === etag || ifNoneMatch === `"${etag}"` || ifNoneMatch === `W/"${etag}"`)) {
+      return new Response(null, { status: 304, headers });
+    }
+  }
+
   if (!headers.get("Content-Type")) {
-    if (key.endsWith(".png")) headers.set("Content-Type", "image/png");
-    else if (key.endsWith(".webp")) headers.set("Content-Type", "image/webp");
-    else if (key.endsWith(".gif")) headers.set("Content-Type", "image/gif");
+    if (cleanKey.endsWith(".png")) headers.set("Content-Type", "image/png");
+    else if (cleanKey.endsWith(".webp")) headers.set("Content-Type", "image/webp");
+    else if (cleanKey.endsWith(".gif")) headers.set("Content-Type", "image/gif");
     else headers.set("Content-Type", "image/jpeg");
   }
-  headers.set("Cache-Control", "public, max-age=86400");
+  headers.set("Cache-Control", "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400");
   applyCors(headers, env, request, false);
 
   if (request.method === "HEAD") {

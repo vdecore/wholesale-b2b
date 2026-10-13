@@ -1120,16 +1120,35 @@ function ProductFormModal({ product, categories, csrfToken, onClose, onSaved }) 
   // Images consolidated from all sources
   const [managedImages, setManagedImages] = useState(() => {
     const imgs = [];
-    // Include primary imageUrl if present
-    if (product.imageUrl) {
-      imgs.push({ id: null, url: product.imageUrl, altText: null, source: 'primary', sortOrder: 0 });
-    }
-    // Include existing product_images
+    const seenUrls = new Set();
+
+    // First include existing product.images (preserves DB IDs and storage types)
     for (const img of (product.images || [])) {
-      // Skip if already added as primary
-      if (product.imageUrl && img.url === product.imageUrl) continue;
-      imgs.push({ id: img.id, url: img.url, altText: img.altText, source: img.storageType || 'url', sortOrder: img.sortOrder });
+      if (img?.url && !seenUrls.has(img.url)) {
+        imgs.push({
+          id: img.id || null,
+          url: img.url,
+          altText: img.altText || null,
+          source: img.storageType === 'r2' ? 'r2' : 'url',
+          r2Key: img.r2Key || null,
+          sortOrder: img.sortOrder ?? imgs.length
+        });
+        seenUrls.add(img.url);
+      }
     }
+
+    // If product.imageUrl exists and wasn't in product.images (legacy single-image record), prepend it
+    if (product.imageUrl && !seenUrls.has(product.imageUrl)) {
+      imgs.unshift({
+        id: null,
+        url: product.imageUrl,
+        altText: null,
+        source: 'primary',
+        r2Key: null,
+        sortOrder: 0
+      });
+    }
+
     return imgs;
   });
 
@@ -1185,6 +1204,7 @@ function ProductFormModal({ product, categories, csrfToken, onClose, onSaved }) 
             url: result.image.url,
             altText: result.image.altText,
             source: 'r2',
+            r2Key: result.image.r2Key,
             sortOrder: result.image.sortOrder
           }]);
         }
@@ -1333,7 +1353,7 @@ function ProductFormModal({ product, categories, csrfToken, onClose, onSaved }) 
         unit: unit.trim() || 'piece',
         imageUrl: managedImages[0]?.url || null,
         status,
-        images: managedImages.map((img, idx) => ({
+        images: managedImages.map((img) => ({
           id: img.id || undefined,
           url: img.url,
           altText: img.altText || null,

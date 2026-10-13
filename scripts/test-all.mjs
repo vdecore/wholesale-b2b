@@ -225,7 +225,94 @@ async function runTestSuite() {
   assert(getProdData.product.price === 145, "Updated price 145 persisted in D1");
   assert(getProdData.product.stock === 120, "Updated stock 120 persisted in D1");
 
-  // 12d. Delete test product
+  // 12d. R2 Image Upload & Delivery Lifecycle
+  const pngBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+  const pngBuffer = Buffer.from(pngBase64, "base64");
+  const blob = new Blob([pngBuffer], { type: "image/png" });
+  const uploadFormData = new FormData();
+  uploadFormData.append("file", blob, "pixel.png");
+
+  const uploadImgRes = await fetch(`${BASE_URL}/api/admin/products/${testProductId}/images`, {
+    method: "POST",
+    headers: {
+      Cookie: cookie,
+      "X-CSRF-Token": csrf,
+    },
+    body: uploadFormData,
+  });
+  assert(uploadImgRes.status === 201, "Admin upload image HTTP 201");
+  const uploadImgData = await uploadImgRes.json();
+  assert(uploadImgData.success === true, "Upload image success === true");
+  assert(typeof uploadImgData.image.id === "number", `Uploaded image ID: ${uploadImgData.image.id}`);
+  assert(typeof uploadImgData.image.url === "string", `Uploaded image public URL: ${uploadImgData.image.url}`);
+  assert(uploadImgData.image.storageType === "r2", "Image storageType === 'r2'");
+  const uploadedImageId = uploadImgData.image.id;
+  const uploadedImageUrl = uploadImgData.image.url;
+
+  // Verify image can be fetched publicly
+  const fetchUrl = uploadedImageUrl.startsWith("http") ? uploadedImageUrl : `${BASE_URL}${uploadedImageUrl}`;
+  const serveImgRes = await fetch(fetchUrl);
+  assert(serveImgRes.status === 200, "Serve R2 image publicly HTTP 200");
+  assert(serveImgRes.headers.get("content-type")?.includes("image/png"), "Served image Content-Type is image/png");
+  const imgEtag = serveImgRes.headers.get("etag");
+  assert(imgEtag != null, "Served image has ETag header");
+
+  // Verify HEAD request
+  const headImgRes = await fetch(fetchUrl, { method: "HEAD" });
+  assert(headImgRes.status === 200, "HEAD request on R2 image returns HTTP 200");
+
+  // Verify conditional GET (304 Not Modified)
+  const conditionalRes = await fetch(fetchUrl, {
+    headers: { "If-None-Match": imgEtag },
+  });
+  assert(conditionalRes.status === 304, "Conditional GET with If-None-Match returns HTTP 304");
+
+  // Verify product now has this image in GET /api/admin/products/:id
+  const getProdWithImg = await fetch(`${BASE_URL}/api/admin/products/${testProductId}`, {
+    headers: { Cookie: cookie },
+  });
+  const prodWithImgData = await getProdWithImg.json();
+  assert(prodWithImgData.product.images.length === 1, "Product has 1 image in images array");
+  assert(prodWithImgData.product.imageUrl === uploadedImageUrl, "Product primary imageUrl is set to uploaded image");
+
+  // Upload a second image to test reordering
+  const uploadFormData2 = new FormData();
+  uploadFormData2.append("file", blob, "pixel2.png");
+  const uploadImgRes2 = await fetch(`${BASE_URL}/api/admin/products/${testProductId}/images`, {
+    method: "POST",
+    headers: {
+      Cookie: cookie,
+      "X-CSRF-Token": csrf,
+    },
+    body: uploadFormData2,
+  });
+  assert(uploadImgRes2.status === 201, "Second image uploaded HTTP 201");
+  const uploadImgData2 = await uploadImgRes2.json();
+  const secondImageId = uploadImgData2.image.id;
+
+  // Reorder images
+  const reorderRes = await fetch(`${BASE_URL}/api/admin/products/${testProductId}/images/reorder`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: cookie,
+      "X-CSRF-Token": csrf,
+    },
+    body: JSON.stringify({ imageIds: [secondImageId, uploadedImageId] }),
+  });
+  assert(reorderRes.status === 200, "Admin reorder product images HTTP 200");
+
+  // Delete first image
+  const delImgRes = await fetch(`${BASE_URL}/api/admin/products/${testProductId}/images/${uploadedImageId}`, {
+    method: "DELETE",
+    headers: {
+      Cookie: cookie,
+      "X-CSRF-Token": csrf,
+    },
+  });
+  assert(delImgRes.status === 200, "Admin delete product image HTTP 200");
+
+  // 12e. Delete test product
   const delProdRes = await fetch(`${BASE_URL}/api/admin/products/${testProductId}`, {
     method: "DELETE",
     headers: {
