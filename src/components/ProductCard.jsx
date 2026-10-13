@@ -1,3 +1,5 @@
+import ProductImageCarousel from "./ProductImageCarousel.jsx";
+
 export default function ProductCard({
   product,
   onSelectProduct,
@@ -16,36 +18,17 @@ export default function ProductCard({
 
   return (
     <article className="product-card">
-      <div
-        className="product-art"
+      {/* Image carousel — renders inside .product-art which has position:relative.
+          Badges are passed as children so they overlay the carousel at z-index > carousel. */}
+      <ProductImageCarousel
+        images={product.images || []}
+        primaryUrl={product.imageUrl || null}
+        productName={product.name}
         onClick={() => onSelectProduct(product)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") onSelectProduct(product);
-        }}
-        aria-label={`View details for ${product.name}`}
       >
-        {product.imageUrl ? (
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            className="product-card-img"
-            loading="lazy"
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
-          />
-        ) : (
-          <div className="product-art-placeholder">
-            <span className="product-art-icon" aria-hidden="true">
-              📦
-            </span>
-          </div>
-        )}
         <span className="sku-badge">{product.sku}</span>
         {stockBadge}
-      </div>
+      </ProductImageCarousel>
 
       <div className="product-info">
         <div className="product-card-top-meta">

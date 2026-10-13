@@ -20,7 +20,7 @@
     }
   ],
   "vars": {
-    "ALLOWED_ORIGIN": "http://localhost:5173",
-    "COOKIE_SECURE": "false"
+    "ALLOWED_ORIGIN": "https://wholesale-b2b.khushvikja.workers.dev",
+    "COOKIE_SECURE": "true"
   }
 }

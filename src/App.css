@@ -1729,6 +1729,37 @@ body,
   font-size: 13px;
 }
 
+/* Admin product extra images section */
+.admin-extra-images-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 14px;
+  background: #f8faf8;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.admin-extra-images-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #333;
+  display: block;
+  margin-bottom: 2px;
+}
+.admin-extra-images-section input {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 12px;
+  outline: none;
+  background: white;
+  width: 100%;
+}
+.admin-extra-images-section input:focus {
+  border-color: var(--green);
+  outline: 2px solid rgba(118, 80, 55, 0.15);
+}
+
 /* Responsive Media Queries */
 @media (max-width: 900px) {
   .product-detail-layout {
@@ -1775,3 +1806,155 @@ body,
     display: none;
   }
 }
+
+/* ==========================================================================
+   PRODUCT IMAGE CAROUSEL
+   ========================================================================== */
+
+/* Wrapper that holds the carousel + overlaid badges */
+.product-art-carousel-wrapper {
+  position: relative;
+}
+
+/* The fixed-height art area — same as original .product-art */
+.product-art.carousel-root {
+  overflow: hidden;
+}
+
+/* Individual slide */
+.carousel-slide {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+}
+
+.carousel-slide:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: -2px;
+}
+
+/* The actual image — covers the frame without stretching */
+.carousel-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity 0.18s ease;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Fade animation on slide transition */
+.carousel-slide.carousel-fade .carousel-img {
+  opacity: 0.55;
+}
+
+/* Error state: img hidden, show subtle bg */
+.carousel-slide.carousel-img-error {
+  background: #f3f3f3;
+}
+
+/* Placeholder when no images exist */
+.carousel-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: #f6f8f5;
+  cursor: pointer;
+}
+.carousel-placeholder-icon {
+  font-size: 66px;
+  filter: drop-shadow(0 9px 9px #00000012);
+}
+
+/* Prev / Next arrow buttons */
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--dark);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+  opacity: 0;
+  transition: opacity 0.2s, background 0.15s;
+  /* Only show on hover; always show on touch */
+}
+.carousel-btn-prev {
+  left: 8px;
+}
+.carousel-btn-next {
+  right: 8px;
+}
+/* Show arrows on hover */
+.carousel-root:hover .carousel-btn,
+.carousel-root:focus-within .carousel-btn {
+  opacity: 1;
+}
+.carousel-btn:hover {
+  background: rgba(255, 255, 255, 1);
+}
+.carousel-btn:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+  opacity: 1;
+}
+/* Always visible on touch devices */
+@media (hover: none) {
+  .carousel-btn {
+    opacity: 0.82;
+    width: 32px;
+    height: 32px;
+    font-size: 22px;
+  }
+}
+
+/* Dot pagination indicators */
+.carousel-dots {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.carousel-dot {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.carousel-dot.active {
+  background: white;
+  transform: scale(1.35);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+}
+.carousel-dot:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+

@@ -1115,6 +1115,25 @@ function ProductFormModal({ product, categories, csrfToken, onClose, onSaved }) 
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Additional images (up to 3 extra URLs stored in product_images table)
+  const [extraImages, setExtraImages] = useState(() => {
+    const existing = (product.images || []).map((img) => img.url || "");
+    // Pre-fill up to 3 fields
+    return [
+      existing[0] || "",
+      existing[1] || "",
+      existing[2] || "",
+    ];
+  });
+
+  const setExtraImage = (i, val) => {
+    setExtraImages((prev) => {
+      const next = [...prev];
+      next[i] = val;
+      return next;
+    });
+  };
+
   const handleNameChange = (val) => {
     setName(val);
     if (isNew && !slug) {
@@ -1134,6 +1153,11 @@ function ProductFormModal({ product, categories, csrfToken, onClose, onSaved }) 
     setErrorMsg("");
 
     try {
+      // Build the additional images array (non-empty extra URLs)
+      const additionalImages = extraImages
+        .filter((url) => url.trim())
+        .map((url) => ({ url: url.trim() }));
+
       const payload = {
         name: name.trim(),
         sku: sku.trim().toUpperCase(),
@@ -1146,6 +1170,7 @@ function ProductFormModal({ product, categories, csrfToken, onClose, onSaved }) 
         unit: unit.trim() || "piece",
         imageUrl: imageUrl.trim() || null,
         status,
+        images: additionalImages,
       };
 
       if (isNew) {
@@ -1287,14 +1312,34 @@ function ProductFormModal({ product, categories, csrfToken, onClose, onSaved }) 
             </div>
           </div>
 
+          {/* Product Images Section */}
           <div className="form-group">
-            <label htmlFor="pImg">Product Image URL</label>
+            <label htmlFor="pImg">Primary Product Image URL</label>
             <input
               id="pImg"
-              placeholder="https://... or site relative image path"
+              placeholder="https://... (shown first, displayed on product card)"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
             />
+          </div>
+
+          <div className="admin-extra-images-section">
+            <span className="admin-extra-images-label">
+              Additional Images (carousel)
+              <small style={{ color: "var(--muted)", fontWeight: 400, marginLeft: 8 }}>
+                Up to 3 extra images — shown in carousel on product cards
+              </small>
+            </span>
+            {[0, 1, 2].map((i) => (
+              <input
+                key={i}
+                type="url"
+                placeholder={`Additional image ${i + 1} URL (https://...)`}
+                value={extraImages[i]}
+                onChange={(e) => setExtraImage(i, e.target.value)}
+                style={{ marginTop: 6 }}
+              />
+            ))}
           </div>
 
           <div className="form-group">
@@ -1329,6 +1374,7 @@ function ProductFormModal({ product, categories, csrfToken, onClose, onSaved }) 
     </div>
   );
 }
+
 
 function CategoryFormModal({ category, csrfToken, onClose, onSaved }) {
   const isNew = !!category.isNew;
