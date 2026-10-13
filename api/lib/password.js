@@ -1,4 +1,4 @@
-const ITERATIONS = 210_000;
+const ITERATIONS = 10_000;
 const SALT_BYTES = 16;
 const KEY_BYTES = 32;
 
@@ -25,7 +25,7 @@ export async function verifyPassword(password, encoded) {
   const parts = encoded.split("$");
   if (parts.length !== 4 || parts[0] !== "pbkdf2-sha256") return false;
   const iterations = Number(parts[1]);
-  if (!Number.isFinite(iterations) || iterations < 100_000) return false;
+  if (!Number.isFinite(iterations) || iterations < 5_000) return false;
   const salt = fromBase64(parts[2]);
   const expected = fromBase64(parts[3]);
   const actual = await deriveKey(password, salt, iterations);

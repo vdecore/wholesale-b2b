@@ -2,7 +2,7 @@
  * Generate a PBKDF2 password hash compatible with the Worker (for first admin SQL insert).
  * Usage: node scripts/hash-admin-password.mjs "YourStrongPassword"
  */
-const ITERATIONS = 210_000;
+const ITERATIONS = 10_000;
 const SALT_BYTES = 16;
 const KEY_BYTES = 32;
 
