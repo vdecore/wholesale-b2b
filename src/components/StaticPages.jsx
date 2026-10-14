@@ -11,10 +11,89 @@ export function AboutPage({ onNavigate }) {
       </div>
 
       <div className="static-page-body">
+        {/* Owner's Vision Section */}
+        <section className="about-section">
+          <h2>Our Vision</h2>
+          <p>
+            To become India's most reliable and transparent wholesale supply chain for interior and
+            architectural products — where every retailer, contractor, and business buyer has direct
+            access to factory-grade quality without the burden of middlemen, hidden costs, or
+            unreliable logistics.
+          </p>
+        </section>
+
+        {/* Owner's Profile & Short Story Section */}
+        <section className="about-section">
+          <h2>The Owner's Story</h2>
+
+          {/* Owner Profile Card */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "1.5rem",
+              marginBottom: "1.5rem",
+              flexWrap: "wrap",
+              background: "#f9f9f9",
+              padding: "1.25rem",
+              borderRadius: "12px",
+              border: "1px solid #eaeaea",
+            }}
+          >
+            <img
+              src="https://via.placeholder.com/150" // 👈 Replace with actual image path, e.g. "/subhash-jangid.jpg"
+              alt="Subhash Jangid – Founder of Vdecore"
+              style={{
+                width: "120px",
+                height: "120px",
+                borderRadius: "50%",
+                objectFit: "cover",
+                border: "3px solid #fff",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              }}
+            />
+            <div>
+              <h3 style={{ margin: "0 0 0.25rem 0" }}>Subhash Jangid</h3>
+              <p style={{ margin: "0", fontWeight: "500", color: "#555" }}>
+                Founder, Vdecore
+              </p>
+              <p style={{ margin: "0.5rem 0 0 0", fontSize: "0.9rem", color: "#777" }}>
+                Son of Shri Omprakash Jangid
+              </p>
+            </div>
+          </div>
+
+          {/* Owner's Story Text */}
+          <p>
+            Vdecore was founded by <strong>Subhash Jangid</strong>, son of <strong>Omprakash Jangid</strong>,
+            whose roots in the wood and manufacturing trade run deep. Hailing from a family with decades
+            of hands-on experience in woodworking and production, Subhash grew up watching the
+            industry from the ground up — learning the value of craftsmanship, honest pricing, and
+            long-term relationships.
+          </p>
+          <p>
+            Before launching Vdecore as a wholesale B2B platform, Subhash spent years building a
+            deep understanding of what small and growing businesses actually need: fair pricing,
+            flexible order quantities, and a supply partner they can trust. He saw how traditional
+            distribution chains added unnecessary costs and friction for retailers and contractors
+            across India. That's when the idea of Vdecore took shape — a factory-direct, transparent,
+            and technology-enabled wholesale platform built specifically for B2B buyers.
+          </p>
+          <p>
+            Today, Vdecore stands as a testament to that vision. By combining manufacturing
+            expertise with modern B2B commerce, Subhash has created a supply network that
+            empowers businesses to source confidently, scale efficiently, and focus on what they do
+            best — serving their own customers.
+          </p>
+        </section>
+
+        {/* Existing B2B Supply Mission Section */}
         <section className="about-section">
           <h2>Our B2B Supply Mission</h2>
           <p>
-            Vdecore Wholesale was founded to bridge the gap between quality manufacturing and modern retailers, corporate buyers, and institutional clients. We eliminate multiple distributor margins by supplying verified products directly from origin.
+            Vdecore Wholesale was founded to bridge the gap between quality manufacturing and
+            modern retailers, corporate buyers, and institutional clients. We eliminate multiple
+            distributor margins by supplying verified products directly from origin.
           </p>
           <div className="about-grid">
             <div className="about-card">
@@ -100,15 +179,16 @@ export function ContactPage() {
             <h3>Registered Warehouse & Office</h3>
             <p>
               Vdecore Wholesale Hub<br />
-              Industrial Estate, Phase II<br />
+              17, Sikar Rd, Kalyan Nagar<br />
+              Murlipura, Jaipur 302039<br />
               India
             </p>
           </div>
 
           <div className="contact-info-card">
             <h3>Direct Contact</h3>
-            <p><strong>Email:</strong> wholesale@vdecore.com</p>
-            <p><strong>Inquiry Line:</strong> +91 98765 43210</p>
+            <p><strong>Email:</strong> khushivkia@gmail.com</p>
+            <p><strong>Inquiry Line:</strong> +91 98875 50038</p>
             <p><strong>Hours:</strong> Mon - Sat: 9:30 AM – 6:30 PM IST</p>
           </div>
 
