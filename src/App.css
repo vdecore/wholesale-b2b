@@ -1819,6 +1819,7 @@ body,
 /* The fixed-height art area — same as original .product-art */
 .product-art.carousel-root {
   overflow: hidden;
+  background: #f7f5f1; /* soft neutral backdrop so contain-mode looks intentional */
 }
 
 /* Individual slide */
@@ -1830,6 +1831,8 @@ body,
   justify-content: center;
   cursor: pointer;
   outline: none;
+  padding: 0.5rem; /* small breathing room around the image */
+  box-sizing: border-box;
 }
 
 .carousel-slide:focus-visible {
@@ -1837,11 +1840,12 @@ body,
   outline-offset: -2px;
 }
 
-/* The actual image — covers the frame without stretching */
+/* The actual image — shows the FULL image without cropping */
 .carousel-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;   /* 👈 KEY FIX: was "cover" */
+  object-position: center;
   display: block;
   transition: opacity 0.18s ease;
   user-select: none;
@@ -2144,6 +2148,8 @@ body,
   font-style: italic;
   margin: 8px 0 0;
 }
+
+
 
 /* ============================================
    ABOUT PAGE — CLASSIC & ELEGANT THEME
