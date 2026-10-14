@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef } from "react";
 
 /**
  * ProductImageCarousel — lightweight, accessible image carousel for product cards.
@@ -28,10 +28,13 @@ export default function ProductImageCarousel({
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
 
-  // Reset carousel when product changes
-  useEffect(() => {
+  // Track active key to reset index without cascading render
+  const currentKey = `${primaryUrl || ""}-${images?.length || 0}`;
+  const [prevKey, setPrevKey] = useState(currentKey);
+  if (prevKey !== currentKey) {
+    setPrevKey(currentKey);
     setIndex(0);
-  }, [primaryUrl, images]);
+  }
 
   const go = useCallback(
     (next, e) => {

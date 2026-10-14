@@ -31,10 +31,18 @@ export function AboutPage({ onNavigate }) {
           <div className="owner-profile">
             <div className="owner-avatar-wrap">
               <img
-                src="/subhash-jangid.jpg" /* 👈 replace with real image path */
+                src="/subhash-jangid.jpg"
                 alt="Subhash Jangid – Founder of Vdecore"
                 className="owner-avatar"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                  const fallback = e.currentTarget.parentElement?.querySelector(".owner-avatar-fallback");
+                  if (fallback) fallback.style.display = "flex";
+                }}
               />
+              <div className="owner-avatar-fallback" style={{ display: "none" }}>
+                <span>SJ</span>
+              </div>
             </div>
             <div className="owner-details">
               <h3>Subhash Jangid</h3>
