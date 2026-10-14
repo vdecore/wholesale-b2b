@@ -7,87 +7,67 @@ export function AboutPage({ onNavigate }) {
       <div className="static-page-header">
         <span className="eyebrow">WHO WE ARE</span>
         <h1>About Vdecore Wholesale B2B</h1>
-        <p>A trusted manufacturing and wholesale distribution partner for businesses across India.</p>
+        <p className="subtitle">
+          A trusted manufacturing and wholesale distribution partner for businesses across India.
+        </p>
       </div>
 
       <div className="static-page-body">
-        {/* Owner's Vision Section */}
+        {/* Vision */}
         <section className="about-section">
           <h2>Our Vision</h2>
           <p>
-            To become India's most reliable and transparent wholesale supply chain for interior and
-            architectural products — where every retailer, contractor, and business buyer has direct
-            access to factory-grade quality without the burden of middlemen, hidden costs, or
-            unreliable logistics.
+            To become India's most reliable and transparent wholesale supply chain for interior
+            and architectural products — where every retailer, contractor, and business buyer has
+            direct access to factory-grade quality without the burden of middlemen, hidden costs,
+            or unreliable logistics.
           </p>
         </section>
 
-        {/* Owner's Profile & Short Story Section */}
+        {/* Owner Profile + Story */}
         <section className="about-section">
           <h2>The Owner's Story</h2>
 
-          {/* Owner Profile Card */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "1.5rem",
-              marginBottom: "1.5rem",
-              flexWrap: "wrap",
-              background: "#f9f9f9",
-              padding: "1.25rem",
-              borderRadius: "12px",
-              border: "1px solid #eaeaea",
-            }}
-          >
-            <img
-              src="https://via.placeholder.com/150" // 👈 Replace with actual image path, e.g. "/subhash-jangid.jpg"
-              alt="Subhash Jangid – Founder of Vdecore"
-              style={{
-                width: "120px",
-                height: "120px",
-                borderRadius: "50%",
-                objectFit: "cover",
-                border: "3px solid #fff",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-              }}
-            />
-            <div>
-              <h3 style={{ margin: "0 0 0.25rem 0" }}>Subhash Jangid</h3>
-              <p style={{ margin: "0", fontWeight: "500", color: "#555" }}>
-                Founder, Vdecore
-              </p>
-              <p style={{ margin: "0.5rem 0 0 0", fontSize: "0.9rem", color: "#777" }}>
-                Son of Shri Omprakash Jangid
-              </p>
+          <div className="owner-profile">
+            <div className="owner-avatar-wrap">
+              <img
+                src="/subhash-jangid.jpg" /* 👈 replace with real image path */
+                alt="Subhash Jangid – Founder of Vdecore"
+                className="owner-avatar"
+              />
+            </div>
+            <div className="owner-details">
+              <h3>Subhash Jangid</h3>
+              <p className="owner-role">Founder, Vdecore</p>
+              <p className="owner-lineage">Son of Shri Omprakash Jangid</p>
             </div>
           </div>
 
-          {/* Owner's Story Text */}
           <p>
-            Vdecore was founded by <strong>Subhash Jangid</strong>, son of <strong>Omprakash Jangid</strong>,
-            whose roots in the wood and manufacturing trade run deep. Hailing from a family with decades
-            of hands-on experience in woodworking and production, Subhash grew up watching the
-            industry from the ground up — learning the value of craftsmanship, honest pricing, and
-            long-term relationships.
+            Vdecore was founded by <strong>Subhash Jangid</strong>, son of{" "}
+            <strong>Omprakash Jangid</strong>, whose roots in the wood and manufacturing trade run
+            deep. Hailing from a family with decades of hands-on experience in woodworking and
+            production, Subhash grew up watching the industry from the ground up — learning the
+            value of craftsmanship, honest pricing, and long-term relationships.
           </p>
           <p>
             Before launching Vdecore as a wholesale B2B platform, Subhash spent years building a
             deep understanding of what small and growing businesses actually need: fair pricing,
             flexible order quantities, and a supply partner they can trust. He saw how traditional
             distribution chains added unnecessary costs and friction for retailers and contractors
-            across India. That's when the idea of Vdecore took shape — a factory-direct, transparent,
-            and technology-enabled wholesale platform built specifically for B2B buyers.
+            across India. That's when the idea of Vdecore took shape — a factory-direct,
+            transparent, and technology-enabled wholesale platform built specifically for B2B
+            buyers.
           </p>
           <p>
             Today, Vdecore stands as a testament to that vision. By combining manufacturing
             expertise with modern B2B commerce, Subhash has created a supply network that
-            empowers businesses to source confidently, scale efficiently, and focus on what they do
-            best — serving their own customers.
+            empowers businesses to source confidently, scale efficiently, and focus on what they
+            do best — serving their own customers.
           </p>
         </section>
 
-        {/* Existing B2B Supply Mission Section */}
+        {/* Mission */}
         <section className="about-section">
           <h2>Our B2B Supply Mission</h2>
           <p>
@@ -99,24 +79,37 @@ export function AboutPage({ onNavigate }) {
             <div className="about-card">
               <span className="about-icon">🏭</span>
               <h3>Factory Direct Pricing</h3>
-              <p>Transparent wholesale tiers with no hidden markups. Volume discounts engineered for your bottom line.</p>
+              <p>
+                Transparent wholesale tiers with no hidden markups. Volume discounts engineered
+                for your bottom line.
+              </p>
             </div>
             <div className="about-card">
               <span className="about-icon">📦</span>
               <h3>Low Minimum Order Quantities</h3>
-              <p>Accessible MOQs designed to help growing retailers test new catalogue lines without capital lock-in.</p>
+              <p>
+                Accessible MOQs designed to help growing retailers test new catalogue lines
+                without capital lock-in.
+              </p>
             </div>
             <div className="about-card">
               <span className="about-icon">🚚</span>
               <h3>Reliable Freight Network</h3>
-              <p>Tie-ups with leading cargo and surface logistics providers ensure insured dispatch to over 19,000 pincodes.</p>
+              <p>
+                Tie-ups with leading cargo and surface logistics providers ensure insured dispatch
+                to over 19,000 pincodes.
+              </p>
             </div>
           </div>
         </section>
 
+        {/* CTA */}
         <section className="about-cta-box">
           <h3>Partner with Vdecore for your wholesale needs</h3>
-          <p>Reach out to discuss custom catalogue sourcing, OEM packaging, or credit facility terms.</p>
+          <p>
+            Reach out to discuss custom catalogue sourcing, OEM packaging, or credit facility
+            terms.
+          </p>
           <button
             type="button"
             className="primary-button"
