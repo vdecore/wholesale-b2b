@@ -1808,21 +1808,21 @@ body,
 }
 
 /* ==========================================================================
-   PRODUCT IMAGE CAROUSEL
+   PRODUCT IMAGE CAROUSEL — FULL IMAGE FIX
    ========================================================================== */
 
-/* Wrapper that holds the carousel + overlaid badges */
 .product-art-carousel-wrapper {
   position: relative;
 }
 
-/* The fixed-height art area — same as original .product-art */
+/* Container — remove padding, blend background */
 .product-art.carousel-root {
   overflow: hidden;
-  background: #f7f5f1; /* soft neutral backdrop so contain-mode looks intentional */
+  background: #ffffff;
+  position: relative;
 }
 
-/* Individual slide */
+/* Slide — NO padding so image gets max space */
 .carousel-slide {
   width: 100%;
   height: 100%;
@@ -1831,7 +1831,7 @@ body,
   justify-content: center;
   cursor: pointer;
   outline: none;
-  padding: 0.5rem; /* small breathing room around the image */
+  padding: 0;                 /* 👈 removed */
   box-sizing: border-box;
 }
 
@@ -1840,17 +1840,20 @@ body,
   outline-offset: -2px;
 }
 
-/* The actual image — shows the FULL image without cropping */
+/* Image — force full visibility, highest specificity */
+.product-art .carousel-slide .carousel-img,
 .carousel-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;   /* 👈 KEY FIX: was "cover" */
-  object-position: center;
-  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;    /* 👈 force overrides */
+  object-position: center center !important;
+  display: block !important;
   transition: opacity 0.18s ease;
   user-select: none;
   -webkit-user-drag: none;
 }
+
+
 
 /* Fade animation on slide transition */
 .carousel-slide.carousel-fade .carousel-img {
