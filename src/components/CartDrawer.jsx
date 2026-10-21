@@ -132,7 +132,7 @@ export default function CartDrawer({
     ];
 
     window.open(
-      `https://wa.me/?text=${encodeURIComponent(msgLines.join("\n"))}`,
+      `https://wa.me/917014728724?text=${encodeURIComponent(msgLines.join("\n"))}`,
       "_blank",
       "noopener,noreferrer"
     );
